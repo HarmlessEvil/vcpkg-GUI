@@ -7,14 +7,10 @@ import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.io.File
 import java.util.concurrent.CancellationException
-import java.util.concurrent.TimeUnit
 import javax.swing.JFileChooser
 import javax.swing.JFrame
-import javax.swing.JOptionPane
 import javax.swing.SwingWorker
 import javax.swing.filechooser.FileFilter
-import kotlin.time.Duration
-import kotlin.time.DurationUnit
 
 private object ExecutableFilter : FileFilter() {
     override fun accept(f: File) = f.canExecute()
@@ -99,18 +95,18 @@ class DeterminingVersionWorker(
                 .start()
 
             showModalJob = appWindow.coroutineDefaultScope.launch {
-                delay(1000)
+                delay(300)
 
-                // show modal
-                val dialog = DeterminingVersionDialog().apply {
+                DeterminingVersionDialog().apply {
                     setOnCancelAction {
                         this@DeterminingVersionWorker.cancel(true)
                     }
-                }
 
-                dialog.setLocationRelativeTo(root)
-                dialog.pack()
-                dialog.isVisible = true
+                    setLocationRelativeTo(root)
+                    pack()
+
+                    isVisible = true
+                }
             }
 
             exitSuccess = process.waitFor() == 0
