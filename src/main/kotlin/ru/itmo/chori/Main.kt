@@ -94,23 +94,23 @@ class DeterminingVersionWorker(
                 .redirectErrorStream(true)
                 .start()
 
+            val dialog = DeterminingVersionDialog().apply {
+                setOnCancelAction {
+                    this@DeterminingVersionWorker.cancel(true)
+                }
+
+                setLocationRelativeTo(root)
+                pack()
+            }
+
             showModalJob = appWindow.coroutineDefaultScope.launch {
                 delay(300)
-
-                DeterminingVersionDialog().apply {
-                    setOnCancelAction {
-                        this@DeterminingVersionWorker.cancel(true)
-                    }
-
-                    setLocationRelativeTo(root)
-                    pack()
-
-                    isVisible = true
-                }
+                dialog.isVisible = true
             }
 
             exitSuccess = process.waitFor() == 0
             showModalJob.cancel()
+            dialog.dispose()
 
             res = String(process.inputStream.readNBytes(100))
         } catch (e: InterruptedException) {
@@ -140,6 +140,7 @@ class DeterminingVersionWorker(
         } catch (ignored: InterruptedException) { // App was closed
         } finally {
             appWindow.buttonTest.isEnabled = true
+            root.pack()
         }
     }
 }

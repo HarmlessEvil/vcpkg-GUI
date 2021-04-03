@@ -9,6 +9,7 @@ public class AppWindow {
     private JButton buttonTest;
     private JPanel contentPane;
     private JLabel labelVcpkgPath;
+    private JButton refreshButton;
 
     public JButton getVcpkgFileChooser() {
         return vcpkgFileChooser;
