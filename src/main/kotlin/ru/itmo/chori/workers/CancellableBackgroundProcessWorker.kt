@@ -19,7 +19,7 @@ class CancellableBackgroundProcessWorker<T>(
     private val buttonToEnable: JButton,
 
     private val onDone: CancellableBackgroundProcessWorker<T>.() -> Unit,
-    private val outputParser: (Process) -> T
+    private val outputParser: CancellableBackgroundProcessWorker<T>.(Process) -> T?
 ) : SwingWorker<T?, Void>() {
     override fun doInBackground(): T? {
         var dialog: CancellableProcessDialog? = null

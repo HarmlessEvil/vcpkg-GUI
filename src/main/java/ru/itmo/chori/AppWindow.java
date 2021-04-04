@@ -3,7 +3,6 @@ package ru.itmo.chori;
 import ru.itmo.chori.models.PackagesTableModel;
 
 import javax.swing.*;
-import javax.swing.table.AbstractTableModel;
 import java.util.Collections;
 
 public class AppWindow {

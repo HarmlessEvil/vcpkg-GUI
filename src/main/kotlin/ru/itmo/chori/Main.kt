@@ -4,6 +4,7 @@ import kotlinx.coroutines.*
 import ru.itmo.chori.models.Package
 import ru.itmo.chori.models.PackagesTableModel
 import ru.itmo.chori.workers.CancellableBackgroundProcessWorker
+import ru.itmo.chori.workers.PackagesSearchWorker
 import java.awt.Color
 import java.awt.event.ActionEvent
 import java.awt.event.WindowAdapter
@@ -31,6 +32,7 @@ fun main() {
                 it.buttonTest.addActionListener(it.makeOnButtonTest(this))
                 it.refreshButton.addActionListener(it.makeOnButtonRefresh(this))
                 it.buttonRemove.addActionListener(it.makeOnButtonRemove(this))
+                it.buttonAdd.addActionListener(it.makeOnButtonAdd(this))
             }
 
             addWindowListener(object : WindowAdapter() {
@@ -64,6 +66,7 @@ fun AppWindow.makeOnChooseFile(root: JFrame, fileChooser: JFileChooser): (Action
 
     coroutineUIScope.launch {
         this@makeOnChooseFile.vckpgPath.text = fileChooser.selectedFile.path
+        refreshButton.doClick()
     }
 }
 
@@ -77,7 +80,7 @@ fun AppWindow.makeOnButtonTest(root: JFrame): (ActionEvent) -> Unit {
         coroutineUIScope.launch {
             buttonTest.isEnabled = false
 
-            CancellableBackgroundProcessWorker(
+            CancellableBackgroundProcessWorker<ProcessResult>(
                 programArguments = listOf(vckpgPath.text, "version"),
                 buttonToEnable = buttonTest,
                 appWindow = this@makeOnButtonTest,
@@ -104,6 +107,10 @@ fun AppWindow.makeOnButtonTest(root: JFrame): (ActionEvent) -> Unit {
                     }
                 }
             ) { process ->
+                if (isCancelled) {
+                    return@CancellableBackgroundProcessWorker null
+                }
+
                 var exitSuccess = process.waitFor() == 0
                 val res = String(process.inputStream.readNBytes(100))
 
@@ -136,7 +143,7 @@ fun AppWindow.makeOnButtonRefresh(root: JFrame): (ActionEvent) -> Unit {
         coroutineUIScope.launch {
             refreshButton.isEnabled = false
 
-            CancellableBackgroundProcessWorker(
+            CancellableBackgroundProcessWorker<List<Package>>(
                 programArguments = listOf(vckpgPath.text, "list"),
                 buttonToEnable = refreshButton,
                 appWindow = this@makeOnButtonRefresh,
@@ -155,13 +162,25 @@ fun AppWindow.makeOnButtonRefresh(root: JFrame): (ActionEvent) -> Unit {
             ) { process ->
                 val res = emptyList<Package>().toMutableList()
 
+                if (isCancelled) {
+                    return@CancellableBackgroundProcessWorker null
+                }
+
                 if (process.waitFor() != 0) {
                     throw ProcessExecutionException(String(process.inputStream.readAllBytes()))
                 }
 
-                process.inputStream.reader().forEachLine {
-                    val (name, version, description) = it.split(spaceDelimitersRegex, 3)
-                    res.add(Package(name, version, description))
+                run loop@{
+                    process.inputStream.reader().useLines {
+                        for (line in it) {
+                            if (isCancelled) {
+                                return@CancellableBackgroundProcessWorker null
+                            }
+
+                            val (name, version, description) = line.split(spaceDelimitersRegex, 3)
+                            res.add(Package(name, version, description))
+                        }
+                    }
                 }
 
                 res
@@ -180,7 +199,7 @@ fun AppWindow.makeOnButtonRemove(root: JFrame): (ActionEvent) -> Unit = handler@
     coroutineUIScope.launch {
         buttonRemove.isEnabled = false
 
-        CancellableBackgroundProcessWorker(
+        CancellableBackgroundProcessWorker<ProcessResult>(
             programArguments = listOf(vckpgPath.text, "remove", pkg),
             buttonToEnable = buttonRemove,
             appWindow = this@makeOnButtonRemove,
@@ -204,6 +223,10 @@ fun AppWindow.makeOnButtonRemove(root: JFrame): (ActionEvent) -> Unit = handler@
                 }
             }
         ) { process ->
+            if (isCancelled) {
+                return@CancellableBackgroundProcessWorker null
+            }
+
             var exitSuccess = process.waitFor() == 0 // It always returns 0. This approach of determining success is
             // very unreliable and not stable. But there is no alternative for now
             val res = String(process.inputStream.readAllBytes())
@@ -225,5 +248,38 @@ fun AppWindow.makeOnButtonRemove(root: JFrame): (ActionEvent) -> Unit = handler@
 
             ProcessResult(exitSuccess, text)
         }.execute()
+    }
+}
+
+fun AppWindow.makeOnButtonAdd(root: JFrame): (ActionEvent) -> Unit = {
+    coroutineUIScope.launch {
+        AddPackageDialog().apply {
+            setLocationRelativeTo(root)
+            pack()
+
+            addPropertyChangeListener {
+                labelFound.text = "Found: " + it.newValue as Int
+                pack()
+            }
+
+            buttonSearch.addActionListener(this.makeOnButtonSearch(this@makeOnButtonAdd))
+
+            isVisible = true
+        }
+    }
+}
+
+fun AddPackageDialog.makeOnButtonSearch(appWindow: AppWindow): (ActionEvent) -> Unit = {
+    val text = comboBoxPackage.editor.item.toString()
+
+    appWindow.coroutineUIScope.launch {
+        comboBoxPackage.removeAllItems()
+        progressBarSearch.isIndeterminate = true
+
+        PackagesSearchWorker(
+            searchTerm = text,
+            appWindow = appWindow,
+            addPackageDialog = this@makeOnButtonSearch
+        ).execute()
     }
 }
