@@ -4,7 +4,7 @@ import javax.swing.*;
 import java.awt.event.*;
 import java.util.function.Supplier;
 
-public class DeterminingVersionDialog extends JDialog {
+public class CancellableProcessDialog extends JDialog {
     private JPanel contentPane;
     private JButton buttonCancel;
     private JProgressBar progressBar1;
@@ -14,10 +14,10 @@ public class DeterminingVersionDialog extends JDialog {
         this.onCancelAction = onCancelAction;
     }
 
-    public DeterminingVersionDialog() {
+    public CancellableProcessDialog(String title) {
         setContentPane(contentPane);
         setModal(true);
-        setTitle("Determining vcpkg version");
+        setTitle(title);
 
         buttonCancel.addActionListener(e -> onCancel());
 

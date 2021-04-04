@@ -1,6 +1,9 @@
 package ru.itmo.chori;
 
+import ru.itmo.chori.models.PackagesTableModel;
+
 import javax.swing.*;
+import java.util.Collections;
 
 public class AppWindow {
     private JTextField vckpgPath;
@@ -10,6 +13,8 @@ public class AppWindow {
     private JPanel contentPane;
     private JLabel labelVcpkgPath;
     private JButton refreshButton;
+    private JTable tablePackages;
+    private JTextArea textAreaStatus;
 
     public JButton getVcpkgFileChooser() {
         return vcpkgFileChooser;
@@ -29,5 +34,21 @@ public class AppWindow {
 
     public JLabel getStatusMessage() {
         return statusMessage;
+    }
+
+    public JTable getTablePackages() {
+        return tablePackages;
+    }
+
+    public JButton getRefreshButton() {
+        return refreshButton;
+    }
+
+    public JTextArea getTextAreaStatus() {
+        return textAreaStatus;
+    }
+
+    private void createUIComponents() {
+        tablePackages = new JTable(new PackagesTableModel(Collections.emptyList()));
     }
 }

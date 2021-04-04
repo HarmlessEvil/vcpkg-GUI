@@ -1,12 +1,16 @@
 package ru.itmo.chori
 
 import kotlinx.coroutines.*
+import ru.itmo.chori.models.Package
+import ru.itmo.chori.models.PackagesTableModel
 import java.awt.Color
 import java.awt.event.ActionEvent
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.CancellationException
+import java.util.concurrent.ExecutionException
 import javax.swing.JFileChooser
 import javax.swing.JFrame
 import javax.swing.SwingWorker
@@ -27,6 +31,7 @@ fun main() {
             val appWindow = AppWindow().also {
                 it.vcpkgFileChooser.addActionListener(it.makeOnChooseFile(this, fileChooser))
                 it.buttonTest.addActionListener(it.makeOnButtonTest(this))
+                it.refreshButton.addActionListener(it.makeOnButtonRefresh(this))
             }
 
             addWindowListener(object : WindowAdapter() {
@@ -68,12 +73,14 @@ data class ProcessResult(val exitSuccess: Boolean, val text: String)
 fun AppWindow.makeOnButtonTest(root: JFrame): (ActionEvent) -> Unit = handler@{
     coroutineUIScope.launch {
         this@makeOnButtonTest.buttonTest.isEnabled = false
-    }.invokeOnCompletion {
-        it?.let {
-            return@invokeOnCompletion
-        }
-
         DeterminingVersionWorker(vckpgPath.text, root, this@makeOnButtonTest).execute()
+    }
+}
+
+fun AppWindow.makeOnButtonRefresh(root: JFrame): (ActionEvent) -> Unit = handler@{
+    coroutineUIScope.launch {
+        this@makeOnButtonRefresh.refreshButton.isEnabled = false
+        FetchPackageListWorker(this@makeOnButtonRefresh, root).execute()
     }
 }
 
@@ -82,19 +89,21 @@ class DeterminingVersionWorker(
     private val root: JFrame,
     private val appWindow: AppWindow
 ) : SwingWorker<ProcessResult?, Void>() {
-    private val vcpkgVersionRegex = """(Vcpkg package management program version .*\b)""".toRegex()
+    companion object {
+        private val vcpkgVersionRegex = """(Vcpkg package management program version .*\b)""".toRegex()
+    }
 
     override fun doInBackground(): ProcessResult? {
         var showModalJob: Job? = null
         var exitSuccess: Boolean
-        var res: String
+        val res: String
 
         try {
             val process = ProcessBuilder(executable, "version")
                 .redirectErrorStream(true)
                 .start()
 
-            val dialog = DeterminingVersionDialog().apply {
+            val dialog = CancellableProcessDialog("Determining vcpkg version").apply {
                 setOnCancelAction {
                     this@DeterminingVersionWorker.cancel(true)
                 }
@@ -103,7 +112,7 @@ class DeterminingVersionWorker(
                 pack()
             }
 
-            showModalJob = appWindow.coroutineDefaultScope.launch {
+            showModalJob = appWindow.coroutineUIScope.launch {
                 delay(300)
                 dialog.isVisible = true
             }
@@ -113,9 +122,15 @@ class DeterminingVersionWorker(
             dialog.dispose()
 
             res = String(process.inputStream.readNBytes(100))
-        } catch (e: InterruptedException) {
-            showModalJob?.cancel()
+        } catch (ignored: InterruptedException) {
             return null
+        } catch (e: IOException) {
+            val text = e.message ?: "Error occurred while determining vcpkg version"
+            exitSuccess = false
+
+            return ProcessResult(exitSuccess, text)
+        } finally {
+            showModalJob?.cancel()
         }
 
         var text: String = res
@@ -147,6 +162,71 @@ class DeterminingVersionWorker(
         } finally {
             appWindow.buttonTest.isEnabled = true
             root.pack()
+        }
+    }
+}
+
+class ProcessExecutionException(message: String) : Exception(message)
+class FetchPackageListWorker(
+    private val appWindow: AppWindow,
+    private val root: JFrame
+) : SwingWorker<List<Package>?, Void>() {
+    companion object {
+        private val spaceDelimitersRegex = " +".toRegex()
+    }
+
+    override fun doInBackground(): List<Package>? {
+        var showModalJob: Job? = null
+        val res = emptyList<Package>().toMutableList()
+
+        try {
+            val process = ProcessBuilder(appWindow.vckpgPath.text, "list")
+                .redirectErrorStream(true)
+                .start()
+
+            val dialog = CancellableProcessDialog("Fetching vcpkg packages list").apply {
+                setOnCancelAction {
+                    this@FetchPackageListWorker.cancel(true)
+                }
+
+                setLocationRelativeTo(root)
+                pack()
+            }
+
+            showModalJob = appWindow.coroutineUIScope.launch {
+                delay(300)
+                dialog.isVisible = true
+            }
+
+            if (process.waitFor() != 0) {
+                throw ProcessExecutionException(String(process.inputStream.readAllBytes()))
+            }
+
+            process.inputStream.reader().forEachLine {
+                val (name, version, description) = it.split(spaceDelimitersRegex, 3)
+                res.add(Package(name, version, description))
+            }
+        } catch (ignored: InterruptedException) {
+            return null
+        } catch (e: IOException) {
+            throw ProcessExecutionException(e.message ?: "Error occurred while fetching vcpkg version list")
+        } finally {
+            showModalJob?.cancel()
+        }
+
+        return res
+    }
+
+    override fun done() {
+        try {
+            val packages = get() ?: return
+            (appWindow.tablePackages.model as PackagesTableModel).setPackages(packages)
+            appWindow.textAreaStatus.text = ""
+        } catch(e: ExecutionException) {
+            val cause = e.cause as? ProcessExecutionException ?: return
+            appWindow.textAreaStatus.text = cause.message
+        } finally {
+            appWindow.refreshButton.isEnabled = true
         }
     }
 }
