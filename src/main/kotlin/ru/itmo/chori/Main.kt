@@ -30,6 +30,7 @@ fun main() {
                 it.vcpkgFileChooser.addActionListener(it.makeOnChooseFile(this, fileChooser))
                 it.buttonTest.addActionListener(it.makeOnButtonTest(this))
                 it.refreshButton.addActionListener(it.makeOnButtonRefresh(this))
+                it.buttonRemove.addActionListener(it.makeOnButtonRemove(this))
             }
 
             addWindowListener(object : WindowAdapter() {
@@ -166,5 +167,63 @@ fun AppWindow.makeOnButtonRefresh(root: JFrame): (ActionEvent) -> Unit {
                 res
             }.execute()
         }
+    }
+}
+
+fun AppWindow.makeOnButtonRemove(root: JFrame): (ActionEvent) -> Unit = handler@{
+    if (tablePackages.selectedRow == -1) {
+        return@handler
+    }
+
+    val pkg = tablePackages.getValueAt(tablePackages.selectedRow, 0).toString()
+
+    coroutineUIScope.launch {
+        buttonRemove.isEnabled = false
+
+        CancellableBackgroundProcessWorker(
+            programArguments = listOf(vckpgPath.text, "remove", pkg),
+            buttonToEnable = buttonRemove,
+            appWindow = this@makeOnButtonRemove,
+            dialogTitle = "Removing package $pkg",
+            root = root,
+            onDone = {
+                try {
+                    val result = get() ?: return@CancellableBackgroundProcessWorker
+
+                    if (!result.exitSuccess) {
+                        textAreaStatus.text = result.text
+
+                        return@CancellableBackgroundProcessWorker
+                    }
+
+                    refreshButton.doClick()
+                    textAreaStatus.text = ""
+                } catch (e: ExecutionException) {
+                    val cause = e.cause as? ProcessExecutionException ?: return@CancellableBackgroundProcessWorker
+                    textAreaStatus.text = cause.message
+                }
+            }
+        ) { process ->
+            var exitSuccess = process.waitFor() == 0 // It always returns 0. This approach of determining success is
+            // very unreliable and not stable. But there is no alternative for now
+            val res = String(process.inputStream.readAllBytes())
+
+            var text: String = res
+            if (res == "") {
+                text = "Empty vcpkg remove output"
+                exitSuccess = false
+            }
+
+            if (exitSuccess) {
+                if (!res.trim().endsWith("done")) {
+                    exitSuccess = false
+                    text = res
+                } else {
+                    text = ""
+                }
+            }
+
+            ProcessResult(exitSuccess, text)
+        }.execute()
     }
 }

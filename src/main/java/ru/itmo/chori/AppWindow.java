@@ -3,6 +3,7 @@ package ru.itmo.chori;
 import ru.itmo.chori.models.PackagesTableModel;
 
 import javax.swing.*;
+import javax.swing.table.AbstractTableModel;
 import java.util.Collections;
 
 public class AppWindow {
@@ -15,6 +16,8 @@ public class AppWindow {
     private JButton refreshButton;
     private JTable tablePackages;
     private JTextArea textAreaStatus;
+    private JButton buttonAdd;
+    private JButton buttonRemove;
 
     public JButton getVcpkgFileChooser() {
         return vcpkgFileChooser;
@@ -48,7 +51,16 @@ public class AppWindow {
         return textAreaStatus;
     }
 
+    public JButton getButtonAdd() {
+        return buttonAdd;
+    }
+
+    public JButton getButtonRemove() {
+        return buttonRemove;
+    }
+
     private void createUIComponents() {
         tablePackages = new JTable(new PackagesTableModel(Collections.emptyList()));
+        tablePackages.setSelectionMode(DefaultListSelectionModel.SINGLE_SELECTION);
     }
 }
