@@ -118,17 +118,23 @@ class DeterminingVersionWorker(
             return null
         }
 
+        var text: String = res
+        if (res == "") {
+            text = "Empty vcpkg version output"
+            exitSuccess = false
+        }
+
         if (exitSuccess) {
             val matcher = vcpkgVersionRegex.find(res)
             if (matcher == null) {
                 exitSuccess = false
-                res = "Unsupported format for vcpkg version output: $res"
+                text = "Unsupported format for vcpkg version output: $res"
             } else {
-                res = matcher.groupValues[1]
+                text = matcher.groupValues[1]
             }
         }
 
-        return ProcessResult(exitSuccess, res)
+        return ProcessResult(exitSuccess, text)
     }
 
     override fun done() {
