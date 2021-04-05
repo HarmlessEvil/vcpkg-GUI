@@ -1,6 +1,7 @@
 package ru.itmo.chori;
 
 import javax.swing.*;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -18,6 +19,7 @@ public class AddPackageDialog extends JDialog {
     private JTextArea textAreaInstallStatus;
     private JLabel labelFound;
     private JProgressBar progressBarSearch;
+    private JScrollPane scrollPane;
 
     private final AtomicInteger foundPackagesCount = new AtomicInteger(0);
     private final AtomicBoolean isInstalling = new AtomicBoolean(false);
@@ -31,14 +33,18 @@ public class AddPackageDialog extends JDialog {
         return newValue;
     }
 
+    public void setFoundPackagesCount(int count) {
+        int oldValue = foundPackagesCount.getAndSet(count);
+
+        pcs.firePropertyChange("found", oldValue, count);
+    }
+
     public boolean isInstalling() {
         return isInstalling.get();
     }
 
     public void setInstalling(boolean newValue) {
-        boolean oldValue = isInstalling.getAndSet(newValue);
-
-        pcs.firePropertyChange("installing", oldValue, newValue);
+        isInstalling.set(newValue);
     }
 
     private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
@@ -51,29 +57,45 @@ public class AddPackageDialog extends JDialog {
         pcs.removePropertyChangeListener(listener);
     }
 
+    private Runnable onCloseActionListener;
+
+    public void setOnClose(Runnable onCloseActionListener) {
+        this.onCloseActionListener = onCloseActionListener;
+    }
+
     public AddPackageDialog() {
         setContentPane(contentPane);
         setModal(true);
 
-        // call onCancel() when cross is clicked
+        buttonClose.addActionListener(e -> onClose());
+
+        // call onClose() when cross is clicked
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
-                onCancel();
+                onClose();
             }
         });
 
-        // call onCancel() on ESCAPE
+        // call onClose() on ESCAPE
         contentPane.registerKeyboardAction(
-                e -> onCancel(),
+                e -> onClose(),
                 KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
                 JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
         );
+
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setOpaque(false);
+        textAreaInstallStatus.setOpaque(false);
     }
 
-    private void onCancel() {
+    private void onClose() {
         if (isInstalling()) {
             return;
+        }
+
+        if (onCloseActionListener != null) {
+            onCloseActionListener.run();
         }
 
         dispose();

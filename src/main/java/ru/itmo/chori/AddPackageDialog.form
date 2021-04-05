@@ -83,22 +83,11 @@
           </component>
           <component id="14577" class="javax.swing.JLabel">
             <constraints>
-              <grid row="1" column="0" row-span="1" col-span="4" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+              <grid row="1" column="0" row-span="1" col-span="5" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties>
               <font style="2"/>
               <text value="First search package by its name, then choose one from list and hit &quot;Install&quot;"/>
-            </properties>
-          </component>
-          <component id="7da6b" class="javax.swing.JTextArea" binding="textAreaInstallStatus">
-            <constraints>
-              <grid row="2" column="0" row-span="1" col-span="4" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                <preferred-size width="150" height="50"/>
-              </grid>
-            </constraints>
-            <properties>
-              <editable value="false"/>
-              <opaque value="false"/>
             </properties>
           </component>
           <component id="d92de" class="javax.swing.JLabel" binding="labelFound">
@@ -109,6 +98,27 @@
               <text value="Found: 0"/>
             </properties>
           </component>
+          <scrollpane id="28dc8" binding="scrollPane">
+            <constraints>
+              <grid row="2" column="0" row-span="1" col-span="5" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                <preferred-size width="-1" height="300"/>
+              </grid>
+            </constraints>
+            <properties>
+              <opaque value="false"/>
+            </properties>
+            <border type="none"/>
+            <children>
+              <component id="7da6b" class="javax.swing.JTextArea" binding="textAreaInstallStatus">
+                <constraints/>
+                <properties>
+                  <editable value="false"/>
+                  <lineWrap value="false"/>
+                  <opaque value="false"/>
+                </properties>
+              </component>
+            </children>
+          </scrollpane>
         </children>
       </grid>
       <component id="aa6fa" class="javax.swing.JProgressBar" binding="progressBarSearch">

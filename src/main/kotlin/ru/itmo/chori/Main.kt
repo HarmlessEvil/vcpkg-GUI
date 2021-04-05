@@ -4,6 +4,7 @@ import kotlinx.coroutines.*
 import ru.itmo.chori.models.Package
 import ru.itmo.chori.models.PackagesTableModel
 import ru.itmo.chori.workers.CancellableBackgroundProcessWorker
+import ru.itmo.chori.workers.PackageInstallWorker
 import ru.itmo.chori.workers.PackagesSearchWorker
 import java.awt.Color
 import java.awt.event.ActionEvent
@@ -156,7 +157,7 @@ fun AppWindow.makeOnButtonRefresh(root: JFrame): (ActionEvent) -> Unit {
                         textAreaStatus.text = ""
                     } catch (e: ExecutionException) {
                         val cause = e.cause as? ProcessExecutionException ?: return@CancellableBackgroundProcessWorker
-                        textAreaStatus.text = cause.message
+                        textAreaStatus.text = "Error on refresh: " + cause.message
                     }
                 }
             ) { process ->
@@ -263,6 +264,13 @@ fun AppWindow.makeOnButtonAdd(root: JFrame): (ActionEvent) -> Unit = {
             }
 
             buttonSearch.addActionListener(this.makeOnButtonSearch(this@makeOnButtonAdd))
+            buttonInstall.addActionListener(this.makeOnButtonInstall(this@makeOnButtonAdd))
+
+            setOnClose {
+                coroutineUIScope.launch {
+                    refreshButton.doClick()
+                }
+            }
 
             isVisible = true
         }
@@ -271,6 +279,7 @@ fun AppWindow.makeOnButtonAdd(root: JFrame): (ActionEvent) -> Unit = {
 
 fun AddPackageDialog.makeOnButtonSearch(appWindow: AppWindow): (ActionEvent) -> Unit = {
     val text = comboBoxPackage.editor.item.toString()
+    setFoundPackagesCount(0)
 
     appWindow.coroutineUIScope.launch {
         comboBoxPackage.removeAllItems()
@@ -280,6 +289,22 @@ fun AddPackageDialog.makeOnButtonSearch(appWindow: AppWindow): (ActionEvent) -> 
             searchTerm = text,
             appWindow = appWindow,
             addPackageDialog = this@makeOnButtonSearch
+        ).execute()
+    }
+}
+
+fun AddPackageDialog.makeOnButtonInstall(appWindow: AppWindow): (ActionEvent) -> Unit = handler@{
+    val pkg = comboBoxPackage.selectedItem?.toString() ?: return@handler
+
+    isInstalling = true
+    appWindow.coroutineUIScope.launch {
+        buttonInstall.isEnabled = false
+        buttonSearch.isEnabled = false
+
+        PackageInstallWorker(
+            pkg = pkg,
+            appWindow = appWindow,
+            addPackageDialog = this@makeOnButtonInstall
         ).execute()
     }
 }
