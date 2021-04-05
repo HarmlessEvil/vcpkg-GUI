@@ -314,19 +314,26 @@ fun AppWindow.makeOnButtonAdd(root: JFrame): (ActionEvent) -> Unit = {
     }
 }
 
-fun AddPackageDialog.makeOnButtonSearch(appWindow: AppWindow): (ActionEvent) -> Unit = {
-    val text = comboBoxPackage.editor.item.toString()
-    setFoundPackagesCount(0)
+fun AddPackageDialog.makeOnButtonSearch(appWindow: AppWindow): (ActionEvent) -> Unit {
+    var worker: PackagesSearchWorker? = null
 
-    appWindow.coroutineUIScope.launch {
-        comboBoxPackage.removeAllItems()
-        progressBarSearch.isIndeterminate = true
+    return {
+        val text = comboBoxPackage.editor.item.toString()
+        setFoundPackagesCount(0)
 
-        PackagesSearchWorker(
-            searchTerm = text,
-            appWindow = appWindow,
-            addPackageDialog = this@makeOnButtonSearch
-        ).execute()
+        appWindow.coroutineUIScope.launch {
+            comboBoxPackage.removeAllItems()
+            progressBarSearch.isIndeterminate = true
+
+            worker?.cancel(true)
+            worker = PackagesSearchWorker(
+                searchTerm = text,
+                appWindow = appWindow,
+                addPackageDialog = this@makeOnButtonSearch
+            ).also {
+                it.execute()
+            }
+        }
     }
 }
 
