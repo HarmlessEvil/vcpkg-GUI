@@ -122,7 +122,7 @@
           </component>
         </children>
       </grid>
-      <scrollpane id="35641">
+      <scrollpane id="35641" binding="scrollPaneTextAreaStatus">
         <constraints>
           <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
         </constraints>

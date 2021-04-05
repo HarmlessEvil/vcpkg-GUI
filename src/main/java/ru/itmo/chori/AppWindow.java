@@ -17,6 +17,7 @@ public class AppWindow {
     private JTextArea textAreaStatus;
     private JButton buttonAdd;
     private JButton buttonRemove;
+    private JScrollPane scrollPaneTextAreaStatus;
 
     public JButton getVcpkgFileChooser() {
         return vcpkgFileChooser;
@@ -56,6 +57,13 @@ public class AppWindow {
 
     public JButton getButtonRemove() {
         return buttonRemove;
+    }
+
+    public AppWindow() {
+        scrollPaneTextAreaStatus.setBorder(null);
+        scrollPaneTextAreaStatus.setOpaque(false);
+        scrollPaneTextAreaStatus.getViewport().setOpaque(false);
+        textAreaStatus.setOpaque(false);
     }
 
     private void createUIComponents() {
