@@ -23,7 +23,7 @@ the wrapper around `vcpkg search` command.
 ## Building
 
 > Note: IntelliJ Swing GUI designer was used to generate forms, so 
-> this project can stable run only in IntelliJ IDEA 
+> this project can compile stably only in IntelliJ IDEA 
 
 In IntelliJ IDEA make sure you have an option **Build and run using**
 in the section **Build, Execution, Deployment > Build Tools > Gradle** 
