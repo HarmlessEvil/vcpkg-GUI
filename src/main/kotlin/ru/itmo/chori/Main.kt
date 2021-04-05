@@ -1,8 +1,6 @@
 package ru.itmo.chori
 
-import com.beust.klaxon.JsonObject
 import com.beust.klaxon.JsonReader
-import com.beust.klaxon.Klaxon
 import kotlinx.coroutines.*
 import ru.itmo.chori.models.Package
 import ru.itmo.chori.models.PackagesTableModel
