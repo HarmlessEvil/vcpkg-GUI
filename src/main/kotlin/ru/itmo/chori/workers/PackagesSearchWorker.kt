@@ -10,7 +10,7 @@ class PackagesSearchWorker(
     private val addPackageDialog: AddPackageDialog
 ) : SwingWorker<Unit, String>() {
     companion object {
-        val multipleSpaceRegex = " +".toRegex();
+        val multipleSpaceRegex = " +".toRegex()
     }
 
     override fun doInBackground() {
