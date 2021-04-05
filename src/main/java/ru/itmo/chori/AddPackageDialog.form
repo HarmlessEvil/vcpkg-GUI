@@ -34,7 +34,7 @@
                   <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
-                  <text value="Close"/>
+                  <text resource-bundle="Bundle" key="button.close"/>
                 </properties>
               </component>
             </children>
@@ -57,7 +57,7 @@
             </constraints>
             <properties>
               <labelFor value="a0e4f"/>
-              <text value="Package name:"/>
+              <text resource-bundle="Bundle" key="label.package.name"/>
             </properties>
           </component>
           <component id="a0e4f" class="javax.swing.JComboBox" binding="comboBoxPackage">
@@ -74,7 +74,7 @@
               <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties>
-              <text value="Search"/>
+              <text resource-bundle="Bundle" key="button.search"/>
             </properties>
           </component>
           <component id="edbe1" class="javax.swing.JButton" binding="buttonInstall">
@@ -82,7 +82,7 @@
               <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties>
-              <text value="Install"/>
+              <text resource-bundle="Bundle" key="button.install"/>
             </properties>
           </component>
           <component id="14577" class="javax.swing.JLabel">
@@ -92,7 +92,7 @@
             <properties>
               <font style="2"/>
               <labelFor value=""/>
-              <text value="First search package by its name, then choose one from list and hit &quot;Install&quot; "/>
+              <text resource-bundle="Bundle" key="label.first.search.package.by.its.name.then.choose.one.from.list.and.hit.install"/>
             </properties>
           </component>
           <component id="d92de" class="javax.swing.JLabel" binding="labelFound">
@@ -102,7 +102,7 @@
               </grid>
             </constraints>
             <properties>
-              <text value="Found: 0"/>
+              <text resource-bundle="Bundle" key="label.found"/>
             </properties>
           </component>
           <scrollpane id="28dc8" binding="scrollPane">
