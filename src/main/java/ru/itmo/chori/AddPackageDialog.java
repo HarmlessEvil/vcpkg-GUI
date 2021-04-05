@@ -87,6 +87,8 @@ public class AddPackageDialog extends JDialog {
         scrollPane.getViewport().setOpaque(false);
         scrollPane.setOpaque(false);
         textAreaInstallStatus.setOpaque(false);
+
+        comboBoxPackage.setPrototypeDisplayValue("sqlite3[sqlite3]");
     }
 
     private void onClose() {
