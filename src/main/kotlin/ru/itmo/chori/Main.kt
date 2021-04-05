@@ -1,5 +1,8 @@
 package ru.itmo.chori
 
+import com.beust.klaxon.JsonObject
+import com.beust.klaxon.JsonReader
+import com.beust.klaxon.Klaxon
 import kotlinx.coroutines.*
 import ru.itmo.chori.models.Package
 import ru.itmo.chori.models.PackagesTableModel
@@ -138,14 +141,12 @@ fun AppWindow.makeOnButtonTest(root: JFrame): (ActionEvent) -> Unit {
 }
 
 fun AppWindow.makeOnButtonRefresh(root: JFrame): (ActionEvent) -> Unit {
-    val spaceDelimitersRegex = " +".toRegex()
-
     return {
         coroutineUIScope.launch {
             refreshButton.isEnabled = false
 
             CancellableBackgroundProcessWorker<List<Package>>(
-                programArguments = listOf(vckpgPath.text, "list"),
+                programArguments = listOf(vckpgPath.text, "list", "--x-json"), // It's the only one option that supports JSON output
                 buttonToEnable = refreshButton,
                 appWindow = this@makeOnButtonRefresh,
                 dialogTitle = "Fetching vcpkg packages list",
@@ -154,10 +155,17 @@ fun AppWindow.makeOnButtonRefresh(root: JFrame): (ActionEvent) -> Unit {
                     try {
                         val packages = get() ?: return@CancellableBackgroundProcessWorker
                         (tablePackages.model as PackagesTableModel).setPackages(packages)
-                        textAreaStatus.text = ""
+
+                        if (packages.isEmpty()) {
+                            textAreaStatus.text = "No packages installed"
+                            textAreaStatus.foreground = Color.BLACK
+                        } else {
+                            textAreaStatus.text = ""
+                        }
                     } catch (e: ExecutionException) {
                         val cause = e.cause as? ProcessExecutionException ?: return@CancellableBackgroundProcessWorker
                         textAreaStatus.text = "Error on refresh: " + cause.message
+                        textAreaStatus.foreground = Color.RED
                     }
                 }
             ) { process ->
@@ -172,14 +180,45 @@ fun AppWindow.makeOnButtonRefresh(root: JFrame): (ActionEvent) -> Unit {
                 }
 
                 run loop@{
-                    process.inputStream.reader().useLines {
-                        for (line in it) {
-                            if (isCancelled) {
-                                return@CancellableBackgroundProcessWorker null
-                            }
+                    JsonReader(process.inputStream.reader()).use { reader ->
+                        reader.beginObject {
+                            while (reader.hasNext()) {
+                                if (isCancelled) {
+                                    return@beginObject
+                                }
 
-                            val (name, version, description) = line.split(spaceDelimitersRegex, 3)
-                            res.add(Package(name, version, description))
+                                reader.nextName() // read package descriptor –- name:triplet
+                                val pkg = reader.beginObject {
+                                    var name: String? = null
+                                    var version: String? = null
+                                    var description: String? = null
+
+                                    while (name == null || version == null || description == null) {
+                                        when(reader.nextName()) { // IMO It should skip value and return next name and not fail
+                                            "package_name" -> name = reader.nextString()
+                                            "version" -> version = reader.nextString()
+                                            "features" -> reader.nextArray()
+                                            "desc" -> description = reader.nextArray().joinToString("\n")
+                                            "port_version" -> reader.nextInt()
+                                            else -> reader.nextString()
+                                        }
+                                    }
+
+                                    while (reader.hasNext()) { // Consume the rest of object if any. Otherwise it will fail -_-
+                                        when(reader.nextName()) {
+                                            "features" -> reader.nextArray()
+                                            "desc" -> reader.nextArray()
+                                            "port_version" -> reader.nextInt()
+                                            else -> reader.nextString()
+                                        }
+
+                                    }
+
+                                    Package(name, version, description)
+                                }
+
+                                res.add(pkg)
+                            }
                         }
                     }
                 }
