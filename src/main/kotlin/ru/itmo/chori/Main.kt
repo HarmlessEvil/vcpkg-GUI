@@ -339,6 +339,7 @@ fun AddPackageDialog.makeOnButtonInstall(appWindow: AppWindow): (ActionEvent) ->
     appWindow.coroutineUIScope.launch {
         buttonInstall.isEnabled = false
         buttonSearch.isEnabled = false
+        textAreaInstallStatus.text = ""
 
         PackageInstallWorker(
             pkg = pkg,
