@@ -1,7 +1,8 @@
 package ru.itmo.chori
 
-import com.beust.klaxon.JsonReader
 import kotlinx.coroutines.*
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import ru.itmo.chori.models.Package
 import ru.itmo.chori.models.PackagesTableModel
 import ru.itmo.chori.workers.CancellableBackgroundProcessWorker
@@ -139,6 +140,10 @@ fun AppWindow.makeOnButtonTest(root: JFrame): (ActionEvent) -> Unit {
 }
 
 fun AppWindow.makeOnButtonRefresh(root: JFrame): (ActionEvent) -> Unit {
+    val jsonDecoder = Json {
+        ignoreUnknownKeys = true
+    }
+
     return {
         coroutineUIScope.launch {
             refreshButton.isEnabled = false
@@ -167,8 +172,6 @@ fun AppWindow.makeOnButtonRefresh(root: JFrame): (ActionEvent) -> Unit {
                     }
                 }
             ) { process ->
-                val res = emptyList<Package>().toMutableList()
-
                 if (isCancelled) {
                     return@CancellableBackgroundProcessWorker null
                 }
@@ -177,49 +180,9 @@ fun AppWindow.makeOnButtonRefresh(root: JFrame): (ActionEvent) -> Unit {
                     throw ProcessExecutionException(String(process.inputStream.readAllBytes()))
                 }
 
-                run loop@{
-                    JsonReader(process.inputStream.reader()).use { reader ->
-                        reader.beginObject {
-                            while (reader.hasNext()) {
-                                if (isCancelled) {
-                                    return@beginObject
-                                }
-
-                                reader.nextName() // read package descriptor –- name:triplet
-                                val pkg = reader.beginObject {
-                                    var name: String? = null
-                                    var version: String? = null
-                                    var description: String? = null
-
-                                    while (name == null || version == null || description == null) {
-                                        when(reader.nextName()) { // IMO It should skip value and return next name and not fail
-                                            "package_name" -> name = reader.nextString()
-                                            "version" -> version = reader.nextString()
-                                            "features" -> reader.nextArray()
-                                            "desc" -> description = reader.nextArray().joinToString("\n")
-                                            "port_version" -> reader.nextInt()
-                                            else -> reader.nextString()
-                                        }
-                                    }
-
-                                    while (reader.hasNext()) { // Consume the rest of object if any. Otherwise it will fail -_-
-                                        when(reader.nextName()) {
-                                            "features" -> reader.nextArray()
-                                            "desc" -> reader.nextArray()
-                                            "port_version" -> reader.nextInt()
-                                            else -> reader.nextString()
-                                        }
-
-                                    }
-
-                                    Package(name, version, description)
-                                }
-
-                                res.add(pkg)
-                            }
-                        }
-                    }
-                }
+                val res = jsonDecoder.decodeFromString<Map<String, Package>>(
+                    process.inputStream.readAllBytes().decodeToString()
+                ).values.toList()
 
                 res
             }.execute()

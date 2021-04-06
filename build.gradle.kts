@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.4.31"
+    kotlin("plugin.serialization") version "1.4.31"
 }
 
 group = "chori"
@@ -14,8 +15,8 @@ repositories {
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.4.3")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.4.31")
-    implementation("com.beust:klaxon:5.5")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.1.0")
 
     testImplementation(kotlin("test-junit5"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")

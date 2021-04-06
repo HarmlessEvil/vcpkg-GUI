@@ -1,8 +1,39 @@
 package ru.itmo.chori.models
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import javax.swing.table.AbstractTableModel
 
-data class Package(val name: String, val version: String, val shortDescription: String)
+@Serializable
+data class Package(
+    @SerialName("package_name")
+    val name: String,
+    val version: String,
+    val desc: Array<String>
+) {
+    val shortDescription: String
+    get() = desc.joinToString("\n")
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Package
+
+        if (name != other.name) return false
+        if (version != other.version) return false
+        if (!desc.contentEquals(other.desc)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = name.hashCode()
+        result = 31 * result + version.hashCode()
+        result = 31 * result + desc.contentHashCode()
+        return result
+    }
+}
 
 class PackagesTableModel(private var packages: List<Package>) : AbstractTableModel() {
     private val columnNames = listOf("Name", "Version", "Description")
